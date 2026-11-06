@@ -19,17 +19,64 @@
         src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
     </script>
     <style>
-        .hero {
-            background-image: linear-gradient(
-                rgba(255, 255, 255, 0.82),
-                rgba(255, 255, 255, 0.82)
-            ), url("math-background.jpg");
+        * { box-sizing: border-box; }
 
-            background-size: cover;
-            background-position: center;
-            padding: 70px 40px;
-            margin-bottom: 30px;
+        body {
+            margin: 0;
+            color: #243447;
+            font-family: "Segoe UI", Arial, sans-serif;
+            line-height: 1.7;
+            background:
+                radial-gradient(circle at 8% 12%, rgba(111, 169, 220, .18), transparent 25rem),
+                radial-gradient(circle at 92% 42%, rgba(143, 190, 218, .16), transparent 28rem),
+                linear-gradient(135deg, #edf4fb 0%, #f7f9fc 52%, #eaf2f9 100%);
         }
+
+        .hero {
+            background:
+                radial-gradient(circle at 85% 20%, rgba(255,255,255,.28) 0 2px, transparent 3px),
+                radial-gradient(circle at 85% 20%, transparent 0 95px, rgba(255,255,255,.12) 96px 98px, transparent 99px),
+                linear-gradient(120deg, #163f63 0%, #245f87 55%, #4d88aa 100%);
+            color: white;
+            padding: 70px 40px;
+            margin-bottom: 34px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-content {
+            max-width: 1000px;
+            margin: 0 auto 56px;
+            padding: 38px 46px;
+            background: rgba(255, 255, 255, .94);
+            border: 1px solid rgba(205, 219, 232, .9);
+            border-radius: 18px;
+            box-shadow: 0 16px 45px rgba(35, 65, 92, .09);
+        }
+
+        .page-content h2 {
+            color: #174a72;
+            margin-top: 34px;
+            margin-bottom: 12px;
+            padding-bottom: 7px;
+            border-bottom: 1px solid #e1eaf2;
+            letter-spacing: .01em;
+        }
+
+        .page-content h2:first-child { margin-top: 0; }
+        .page-content p, .page-content li { color: #405266; }
+        .page-content a {
+            color: #17618e;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(23, 97, 142, .25);
+        }
+        .page-content a:hover {
+            color: #0d3e60;
+            border-bottom-color: currentColor;
+        }
+        .page-content ul { padding-left: 1.35rem; }
+        .page-content li { margin: 5px 0; }
+        .page-content hr { border: 0; border-top: 1px solid #e1eaf2; margin: 28px 0; }
 
         .hero-content {
             max-width: 1000px;
@@ -51,21 +98,26 @@
         .hero-text h1 {
             margin: 0 0 10px 0;
             font-size: 38px;
+            color: white;
         }
 
         .hero-text h2 {
             margin: 0 0 8px 0;
             font-weight: normal;
             font-size: 23px;
+            color: #e7f2fb;
         }
 
         .hero-text p {
             margin: 0;
             font-size: 18px;
+            color: #f2f7fb;
         }
 
         @media (max-width: 700px) {
 
+            .hero { padding: 48px 22px; }
+            .page-content { margin: 0 12px 32px; padding: 24px 20px; }
             .hero-content {
                 flex-direction: column;
                 text-align: center;
@@ -139,6 +191,7 @@
     </div>
 </section>
 
+<main class="page-content">
 <hr>
 
 <h2>About</h2>
@@ -340,7 +393,7 @@
         wastaiza@unicauca.edu.co
     </a>
 </p>
-
+</main>
 
 <script>
 (() => {
