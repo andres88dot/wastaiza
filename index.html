@@ -76,6 +76,46 @@
             }
 
         }
+    
+        .mc-section {
+            max-width: 1000px;
+            margin: 48px auto;
+            padding: 28px;
+            border: 1px solid #d9e0e8;
+            border-radius: 14px;
+            background: #fbfcfe;
+        }
+        .mc-section h2 { margin-top: 0; }
+        .mc-intro { max-width: 760px; line-height: 1.65; }
+        .mc-controls {
+            display: flex; flex-wrap: wrap; align-items: end;
+            gap: 14px; margin: 22px 0;
+        }
+        .mc-controls label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
+        .mc-controls select, .mc-controls button {
+            font: inherit; padding: 9px 13px; border-radius: 7px;
+            border: 1px solid #9aa8b8; background: white;
+        }
+        .mc-controls button {
+            cursor: pointer; color: white; background: #174a72;
+            border-color: #174a72; font-weight: 600;
+        }
+        .mc-controls button:disabled { opacity: .6; cursor: wait; }
+        .mc-visuals { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 20px; }
+        .mc-panel { min-width: 0; padding: 14px; background: white; border: 1px solid #e0e5eb; border-radius: 10px; }
+        .mc-panel h3 { margin: 0 0 10px; font-size: 17px; }
+        .mc-canvas { display: block; width: 100%; height: auto; }
+        .mc-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 18px 0; }
+        .mc-stat { padding: 12px; background: white; border: 1px solid #e0e5eb; border-radius: 8px; }
+        .mc-stat span { display: block; color: #526170; font-size: 13px; }
+        .mc-stat strong { display: block; margin-top: 5px; font-size: 19px; overflow-wrap: anywhere; }
+        .mc-note { color: #526170; font-size: 14px; line-height: 1.55; }
+        @media (max-width: 700px) {
+            .mc-section { margin: 30px 10px; padding: 18px; }
+            .mc-visuals { grid-template-columns: 1fr; }
+            .mc-stats { grid-template-columns: 1fr; }
+        }
+
     </style>
 </head>
 
@@ -118,6 +158,54 @@
     <li>Pseudodifferential Operators</li>
     <li>Computational Mathematics</li>
 </ul>
+
+
+<section id="monte-carlo" class="mc-section">
+    <h2>Monte Carlo Simulation: Approximating π</h2>
+    <p class="mc-intro">
+        This interactive experiment estimates π using random points uniformly
+        distributed in the square \([-1,1]\times[-1,1]\). The proportion of
+        points inside the unit circle approximates the ratio of their areas:
+        \[
+            \pi \approx 4\,\frac{N_{\mathrm{inside}}}{N_{\mathrm{total}}}.
+        \]
+        Choose the number of points and run the simulation to observe how the
+        approximation evolves.
+    </p>
+    <div class="mc-controls">
+        <label for="mc-count">Number of random points
+            <select id="mc-count">
+                <option value="100">100</option>
+                <option value="1000" selected>1,000</option>
+                <option value="10000">10,000</option>
+                <option value="100000">100,000</option>
+            </select>
+        </label>
+        <button id="mc-start" type="button">Start simulation</button>
+        <button id="mc-reset" type="button">Reset</button>
+    </div>
+    <div class="mc-visuals">
+        <div class="mc-panel">
+            <h3>Random points in the square</h3>
+            <canvas id="mc-scatter" class="mc-canvas" width="520" height="520"
+                    role="img" aria-label="Random points inside and outside the unit circle"></canvas>
+            <p class="mc-note"> <span style="color:#167a55">● Inside the circle</span>
+                &nbsp; <span style="color:#c45a48">● Outside the circle</span></p>
+        </div>
+        <div class="mc-panel">
+            <h3>Convergence of the estimate</h3>
+            <canvas id="mc-chart" class="mc-canvas" width="520" height="520"
+                    role="img" aria-label="Chart showing the Monte Carlo estimate of pi as points are added"></canvas>
+            <p class="mc-note">The dashed line represents the actual value of π.</p>
+        </div>
+    </div>
+    <div class="mc-stats" aria-live="polite">
+        <div class="mc-stat"><span>Points generated</span><strong id="mc-total">0</strong></div>
+        <div class="mc-stat"><span>Points inside circle</span><strong id="mc-inside">0</strong></div>
+        <div class="mc-stat"><span>Current estimate of π</span><strong id="mc-estimate">—</strong></div>
+    </div>
+    <p class="mc-note" id="mc-status">Select a sample size and click “Start simulation”. Each point is added progressively.</p>
+</section>
 
 <h2>Publications</h2>
 
@@ -252,6 +340,136 @@
         wastaiza@unicauca.edu.co
     </a>
 </p>
+
+
+<script>
+(() => {
+    const scatter = document.getElementById('mc-scatter');
+    const chart = document.getElementById('mc-chart');
+    const scatterCtx = scatter.getContext('2d');
+    const chartCtx = chart.getContext('2d');
+    const countSelect = document.getElementById('mc-count');
+    const startButton = document.getElementById('mc-start');
+    const resetButton = document.getElementById('mc-reset');
+    const totalEl = document.getElementById('mc-total');
+    const insideEl = document.getElementById('mc-inside');
+    const estimateEl = document.getElementById('mc-estimate');
+    const statusEl = document.getElementById('mc-status');
+    const actualPi = Math.PI;
+    let total = 0, inside = 0, target = 1000, running = false;
+    let history = [];
+
+    function drawBase() {
+        const w = scatter.width, h = scatter.height, pad = 28;
+        scatterCtx.clearRect(0, 0, w, h);
+        scatterCtx.fillStyle = '#fbfcfe';
+        scatterCtx.fillRect(0, 0, w, h);
+        scatterCtx.strokeStyle = '#263746';
+        scatterCtx.lineWidth = 2;
+        scatterCtx.strokeRect(pad, pad, w - 2 * pad, h - 2 * pad);
+        scatterCtx.beginPath();
+        scatterCtx.arc(w / 2, h / 2, (w - 2 * pad) / 2, 0, 2 * Math.PI);
+        scatterCtx.strokeStyle = '#174a72';
+        scatterCtx.lineWidth = 2.5;
+        scatterCtx.stroke();
+        scatterCtx.fillStyle = '#174a72';
+        scatterCtx.font = 'bold 22px Georgia, serif';
+        scatterCtx.textAlign = 'center';
+        scatterCtx.fillText('π', w / 2, h / 2 + 8);
+    }
+
+    function drawChart() {
+        const ctx = chartCtx, w = chart.width, h = chart.height;
+        const left = 58, right = 18, top = 28, bottom = 48;
+        const plotW = w - left - right, plotH = h - top - bottom;
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+        const low = 2.5, high = 3.8;
+        ctx.strokeStyle = '#e5e9ee'; ctx.lineWidth = 1;
+        for (let v = 2.6; v <= 3.81; v += 0.2) {
+            const y = top + (high - v) / (high - low) * plotH;
+            ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(w - right, y); ctx.stroke();
+            ctx.fillStyle = '#526170'; ctx.font = '13px sans-serif'; ctx.textAlign = 'right';
+            ctx.fillText(v.toFixed(1), left - 8, y + 4);
+        }
+        const piY = top + (high - actualPi) / (high - low) * plotH;
+        ctx.save(); ctx.setLineDash([7, 6]); ctx.strokeStyle = '#174a72'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(left, piY); ctx.lineTo(w - right, piY); ctx.stroke(); ctx.restore();
+        ctx.fillStyle = '#174a72'; ctx.font = '14px sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText('π', w - right - 18, piY - 8);
+        if (history.length > 0) {
+            ctx.strokeStyle = '#c45a48'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            history.forEach((p, i) => {
+                const x = left + (p.n / target) * plotW;
+                const y = top + (high - Math.max(low, Math.min(high, p.value))) / (high - low) * plotH;
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+        }
+        ctx.strokeStyle = '#263746'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(left, top); ctx.lineTo(left, h - bottom); ctx.lineTo(w - right, h - bottom); ctx.stroke();
+        ctx.fillStyle = '#263746'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('Number of points', left + plotW / 2, h - 12);
+    }
+
+    function updateStats() {
+        totalEl.textContent = total.toLocaleString();
+        insideEl.textContent = inside.toLocaleString();
+        estimateEl.textContent = total ? (4 * inside / total).toFixed(6) : '—';
+    }
+
+    function reset() {
+        running = false;
+        total = 0; inside = 0; history = [];
+        startButton.disabled = false;
+        drawBase(); drawChart(); updateStats();
+        statusEl.textContent = 'Select a sample size and click “Start simulation”. Each point is added progressively.';
+    }
+
+    function runBatch() {
+        if (!running) return;
+        const batchSize = Math.min(800, target - total);
+        const pad = 28, size = scatter.width - 2 * pad;
+        for (let i = 0; i < batchSize; i++) {
+            const x = Math.random() * 2 - 1;
+            const y = Math.random() * 2 - 1;
+            const isInside = x * x + y * y <= 1;
+            if (isInside) inside++;
+            const px = pad + (x + 1) * size / 2;
+            const py = pad + (1 - y) * size / 2;
+            scatterCtx.fillStyle = isInside ? '#167a55' : '#c45a48';
+            scatterCtx.fillRect(px, py, 3, 3);
+            total++;
+        }
+        if (total % 1000 < batchSize || total === target) {
+            history.push({n: total, value: 4 * inside / total});
+        }
+        updateStats();
+        drawChart();
+        if (total < target) {
+            requestAnimationFrame(runBatch);
+        } else {
+            running = false;
+            startButton.disabled = false;
+            statusEl.textContent = 'Simulation complete. Increase the number of points and run it again to compare the estimates.';
+        }
+    }
+
+    startButton.addEventListener('click', () => {
+        if (running) return;
+        reset();
+        target = Number(countSelect.value);
+        running = true;
+        startButton.disabled = true;
+        statusEl.textContent = 'Simulation running…';
+        requestAnimationFrame(runBatch);
+    });
+    resetButton.addEventListener('click', reset);
+    countSelect.addEventListener('change', reset);
+    reset();
+})();
+</script>
 
 </body>
 
